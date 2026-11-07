@@ -20,3 +20,4 @@ Cette approche est bien plus robuste qu'un verdict forcé (pile ou face) : elle 
   - **3 avis** sont classés positifs (`POSITIVE`).
   - **2 avis** sont classés négatifs (`NEGATIVE`).
   - **0 refus ou erreur**.
+

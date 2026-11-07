@@ -1,0 +1,25 @@
+name: CI
+on: [push, pull_request]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.11" }
+      - name: Installer les dépendances
+        run: |
+          python -m venv .venv
+          . .venv/bin/activate
+          pip install --upgrade pip
+          pip install pandas "scikit-learn==1.5.*" "pytest==8.3.*" "fastapi==0.115.*" "httpx==0.27.*" "uvicorn==0.30.*" "shap==0.46.*" "streamlit==1.39.*" requests
+      - name: Entraîner le modèle de démonstration
+        run: |
+          . .venv/bin/activate
+          python src/make_demo.py
+          python src/train.py
+      - name: Lancer les tests
+        run: |
+          . .venv/bin/activate
+          pytest -v

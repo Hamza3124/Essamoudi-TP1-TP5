@@ -1,0 +1,4 @@
+# TP Spring Boot : mvnw et les scripts shell gardent des fins de ligne Unix, même depuis Windows
+java/avis-service/mvnw text eol=lf
+*.sh text eol=lf
+*.cmd text eol=crlf

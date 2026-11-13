@@ -1,4 +1,4 @@
-"""API REST du classifier de sentiment (TP3).
+"""API REST du classifier de sentiment (TP3 et TP Spring Boot).
 
 Lancer : uvicorn api.main:app --reload
 Doc    : http://localhost:8000/docs
@@ -8,11 +8,14 @@ from __future__ import annotations
 import logging
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request, status
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
 from api.model import load_model
 from api.schemas import HealthResponse, PredictRequest, PredictResponse
+from api.v1 import router as v1_router
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 logger = logging.getLogger("sentiment_api")
@@ -42,6 +45,51 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    """Pour les routes /v1, renvoie une structure d'erreur standardisée attendue par le client Java."""
+    if request.url.path.startswith("/v1"):
+        champs = [str(err["loc"][-1]) for err in exc.errors() if "loc" in err and len(err["loc"]) > 0]
+        return JSONResponse(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            content={
+                "erreur": {
+                    "code": "ENTREE_INVALIDE",
+                    "message": "Entrée invalide ou champ manquant",
+                    "champs": champs,
+                }
+            },
+        )
+    return JSONResponse(status_code=422, content={"detail": exc.errors()})
+
+
+@app.exception_handler(HTTPException)
+async def http_exception_handler(request: Request, exc: HTTPException):
+    """Gestion des exceptions HTTP avec format standardisé pour /v1."""
+    headers = getattr(exc, "headers", None)
+    if isinstance(exc.detail, dict) and "erreur" in exc.detail:
+        return JSONResponse(status_code=exc.status_code, content=exc.detail, headers=headers)
+    if request.url.path.startswith("/v1"):
+        code_map = {
+            400: "ENTREE_INVALIDE",
+            401: "NON_AUTHENTIFIE",
+            403: "ACCES_REFUSE",
+            404: "NON_TROUVE",
+            422: "ENTREE_INVALIDE",
+            503: "MODELE_INDISPONIBLE",
+        }
+        code = code_map.get(exc.status_code, "ERREUR_INTERNE")
+        return JSONResponse(
+            status_code=exc.status_code,
+            content={"erreur": {"code": code, "message": str(exc.detail), "champs": []}},
+            headers=headers,
+        )
+    return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail}, headers=headers)
+
+
+app.include_router(v1_router)
 
 
 def _classifier():
@@ -86,4 +134,3 @@ if __name__ == "__main__":
     import uvicorn
 
     uvicorn.run("api.main:app", host="0.0.0.0", port=8000, log_level="info")
-

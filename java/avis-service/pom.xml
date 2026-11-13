@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Service Java du cours (section 2.7, TP Spring Boot) : une application Spring Boot qui consomme l'API Python /v1. -->
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <parent>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-parent</artifactId>
+    <version>3.3.5</version>
+    <relativePath/>
+  </parent>
+  <groupId>ma.cours</groupId>
+  <artifactId>avis-service</artifactId>
+  <version>1.0.0</version>
+  <name>avis-service</name>
+  <description>Service métier Java qui délègue l'analyse de sentiment à l'API Python /v1</description>
+  <properties>
+    <java.version>21</java.version>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <argLine>-Dnet.bytebuddy.experimental=true</argLine>
+  </properties>
+  <dependencies>
+    <!-- Serveur web embarqué (Tomcat), contrôleurs REST, RestClient, Jackson -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-web</artifactId>
+    </dependency>
+    <!-- JUnit 5, AssertJ, MockMvc, MockRestServiceServer -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-test</artifactId>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+  <build>
+    <plugins>
+      <!-- Produit un JAR exécutable : java -jar target/avis-service-1.0.0.jar -->
+      <plugin>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-maven-plugin</artifactId>
+      </plugin>
+    </plugins>
+  </build>
+</project>

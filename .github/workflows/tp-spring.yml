@@ -1,0 +1,47 @@
+# TP Spring Boot (programme 2.7) : construit et teste le service Java, puis l'essaie contre l'API Python réelle.
+# Indépendant de ci.yml : il ne se déclenche que si le Java, l'API ou ce fichier changent.
+name: TP Spring Boot
+on:
+  push:
+    paths: ["java/**", "api/**", "src/**", "scripts/e2e_spring.sh", ".github/workflows/tp-spring.yml"]
+  pull_request:
+    paths: ["java/**", "api/**", "src/**", "scripts/e2e_spring.sh", ".github/workflows/tp-spring.yml"]
+
+jobs:
+  java:
+    name: Tests JUnit (J2 à J5)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: java/avis-service
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: "21", cache: maven }
+      - name: mvnw exécutable (perdu si le fichier a été ajouté depuis Windows)
+        run: chmod +x mvnw
+      - name: Construction et tests
+        run: ./mvnw -B verify
+      - name: Rapports de tests, en cas d'échec
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with: { name: surefire-reports, path: java/avis-service/target/surefire-reports }
+
+  bout-en-bout:
+    name: Service Java contre l'API Python (J6 et J7)
+    needs: java
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.11" }
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: "21", cache: maven }
+      - name: Dépendances de l'API (seulement celles qu'elle importe)
+        run: pip install "pandas==2.2.*" "scikit-learn==1.5.*" "joblib==1.4.*" "fastapi==0.115.*" "uvicorn[standard]==0.30.*" "pydantic==2.9.*" "python-dotenv==1.0.*"
+      - name: Essai de bout en bout
+        run: chmod +x java/avis-service/mvnw && bash scripts/e2e_spring.sh
+      - name: Journaux, en cas d'échec
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with: { name: journaux-e2e, path: java/avis-service/target/e2e }

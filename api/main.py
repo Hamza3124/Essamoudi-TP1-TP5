@@ -9,9 +9,22 @@ import logging
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException, Request, status
+from fastapi.exception_handlers import (
+    http_exception_handler as default_http_handler,
+    request_validation_exception_handler as default_validation_handler,
+)
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from starlette.datastructures import State
+
+# Assure la compatibilité avec monkeypatch de pytest sur app.state
+if not hasattr(State, "classifier"):
+    State.classifier = property(
+        lambda self: self._state.get("classifier"),
+        lambda self, val: self._state.__setitem__("classifier", val),
+        lambda self: self._state.__delitem__("classifier") if "classifier" in self._state else None,
+    )
 
 from api.model import load_model
 from api.schemas import HealthResponse, PredictRequest, PredictResponse
@@ -62,7 +75,7 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
                 }
             },
         )
-    return JSONResponse(status_code=422, content={"detail": exc.errors()})
+    return await default_validation_handler(request, exc)
 
 
 @app.exception_handler(HTTPException)
@@ -86,7 +99,7 @@ async def http_exception_handler(request: Request, exc: HTTPException):
             content={"erreur": {"code": code, "message": str(exc.detail), "champs": []}},
             headers=headers,
         )
-    return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail}, headers=headers)
+    return await default_http_handler(request, exc)
 
 
 app.include_router(v1_router)
